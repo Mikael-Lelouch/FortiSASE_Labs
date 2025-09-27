@@ -1,0 +1,77 @@
+---
+- name: Initialisation des FortiGate
+  hosts: hub:branches
+  gather_facts: no
+  collections:
+    - fortinet.fortios
+  tasks:
+    - name: Définir l'hostname
+      fortios_system_global:
+        vdom: root
+        system_global:
+          hostname: "{{ hostname }}"
+
+    - name: Configurer l'interface LAN
+      fortios_system_interface:
+        vdom: root
+        state: present
+        system_interface:
+          name: "{{ item.name }}"
+          mode: static
+          ip: "{{ item.ip }} {{ item.mask }}"
+          allowaccess: ping https ssh
+      loop: "{{ [lan_interface] if lan_interface is defined else lan_interfaces }}"
+
+    - name: Activer DHCP sur les interfaces LAN
+      when: item.dhcp.enable | default(false)
+      fortios_system_dhcp_server:
+        vdom: root
+        state: present
+        system_dhcp_server:
+          interface: "{{ item.name }}"
+          ip_mode: range
+          default_gateway: "{{ item.ip }}"
+          netmask: "{{ item.mask }}"
+          ip_range:
+            - start_ip: "{{ item.dhcp.range_start }}"
+              end_ip: "{{ item.dhcp.range_end }}"
+      loop: "{{ [lan_interface] if lan_interface is defined else lan_interfaces }}"
+
+- name: Initialisation IAM
+  hosts: iam
+  become: yes
+  tasks:
+    - name: Installer les paquets requis
+      ansible.builtin.package:
+        name: "{{ packages }}"
+        state: present
+
+    - name: Créer les utilisateurs LDAP
+      community.general.ldap_entry:
+        dn: "uid={{ item.username }},ou=users,{{ ldap_domain }}"
+        objectClass:
+          - inetOrgPerson
+          - posixAccount
+          - top
+        attributes:
+          cn: "{{ item.username }}"
+          sn: "{{ item.username }}"
+          uidNumber: "{{ 1000 + loop.index }}"
+          gidNumber: 100
+          homeDirectory: "/home/{{ item.username }}"
+          userPassword: "{{ item.password }}"
+      loop: "{{ users }}"
+      ignore_errors: yes  # permet la relance idempotente
+
+    - name: Déclarer le client RADIUS FortiGate
+      ansible.builtin.template:
+        src: ../../templates/radius-clients.conf.j2
+        dest: /etc/freeradius/clients.d/fortigate.conf
+        mode: '0640'
+      notify: restart radius
+
+  handlers:
+    - name: restart radius
+      ansible.builtin.service:
+        name: freeradius
+        state: restarted

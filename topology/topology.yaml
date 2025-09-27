@@ -1,0 +1,80 @@
+nodes:
+  hub:
+    type: fortigate
+    mgmt_ip: 10.10.10.10
+    image: FortiGate-VM64
+    interfaces:
+      port1:
+        role: management
+        ip: 10.10.10.10/24
+        gateway: 10.10.10.1
+      port2:
+        role: wan1
+        ip: 172.16.0.1/24
+        description: SD-WAN overlay
+      port3:
+        role: lan
+        ip: 192.168.0.1/24
+        description: LAN Hub
+  branch1:
+    type: fortigate
+    mgmt_ip: 10.10.11.10
+    image: FortiGate-VM64
+    interfaces:
+      port1:
+        role: management
+        ip: 10.10.11.10/24
+        gateway: 10.10.11.1
+      port2:
+        role: wan1
+        ip: 172.16.0.11/24
+        description: Tunnel vers hub
+      port3:
+        role: lan
+        ip: 192.168.10.1/24
+        description: LAN Branch-1
+  branch2:
+    type: fortigate
+    mgmt_ip: 10.10.12.10
+    image: FortiGate-VM64
+    interfaces:
+      port1:
+        role: management
+        ip: 10.10.12.10/24
+        gateway: 10.10.12.1
+      port2:
+        role: wan1
+        ip: 172.16.0.12/24
+        description: Tunnel vers hub
+      port3:
+        role: lan
+        ip: 192.168.20.1/24
+        description: LAN Branch-2
+  fortisase_pop:
+    type: fortisase
+    mgmt_ip: 100.64.0.10
+    image: FortiSASE
+    interfaces:
+      port1:
+        role: internet
+        ip: dhcp
+        description: Sortie Internet
+      port2:
+        role: overlay
+        ip: 172.16.0.254/24
+        description: Terminaison overlay
+  iam:
+    type: linux
+    hostname: idm
+    mgmt_ip: 192.168.100.10
+    image: ubuntu-22.04
+    services:
+      - freeradius
+      - ldap
+links:
+  - nodes: [hub:port2, branch1:port2]
+  - nodes: [hub:port2, branch2:port2]
+  - nodes: [hub:port2, fortisase_pop:port2]
+  - nodes: [hub:port3, iam:eth0]
+  - nodes: [branch1:port3]
+  - nodes: [branch2:port3]

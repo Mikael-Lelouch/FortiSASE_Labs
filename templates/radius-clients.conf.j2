@@ -1,0 +1,7 @@
+{% for client in radius_clients %}
+client {{ client.name }} {
+  ipaddr = {{ client.ip }}
+  secret = {{ client.secret }}
+  require_message_authenticator = no
+}
+{% endfor %}

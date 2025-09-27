@@ -1,0 +1,55 @@
+hostname: HUB-FGT
+sdwan_members:
+  - interface: port2
+    zone: OVERLAY
+    seq_num: 10
+lan_interfaces:
+  - name: port3
+    ip: 192.168.0.1
+    mask: 255.255.255.0
+    dhcp:
+      enable: true
+      range_start: 192.168.0.50
+      range_end: 192.168.0.200
+vpn_peers:
+  - name: BR1
+    remote_ip: 172.16.0.11
+    pre_shared_key: Fortinet123!
+  - name: BR2
+    remote_ip: 172.16.0.12
+    pre_shared_key: Fortinet123!
+sase_overlay:
+  gateway: 172.16.0.254
+  interface: port2
+firewall_policies:
+  - firewall_policy:
+      name: Branches-to-LAN
+      srcintf:
+        - name: port2
+      dstintf:
+        - name: port3
+      srcaddr:
+        - name: branch_overlay
+      dstaddr:
+        - name: lan
+      service:
+        - name: ALL
+      action: accept
+      schedule: always
+      inspection_mode: flow
+  - firewall_policy:
+      name: Internet-via-SASE
+      srcintf:
+        - name: port3
+      dstintf:
+        - name: port2
+      srcaddr:
+        - name: lan
+        - name: branch_overlay
+      dstaddr:
+        - name: sase
+      service:
+        - name: ALL
+      action: accept
+      schedule: always
+      inspection_profile: default

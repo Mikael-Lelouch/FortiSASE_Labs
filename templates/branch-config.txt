@@ -1,0 +1,10 @@
+config system global
+    set hostname {{ hostname | default('BR-FGT') }}
+end
+
+config system interface
+    edit "port3"
+        set ip {{ lan_interface.ip }} {{ lan_interface.mask }}
+        set allowaccess ping https ssh
+    next
+end
