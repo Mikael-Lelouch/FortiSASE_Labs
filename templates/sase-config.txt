@@ -1,0 +1,14 @@
+ztna-portal:
+  name: {{ ztna_portal.name }}
+  fqdn: {{ ztna_portal.fqdn }}
+  auth:
+{% for auth in ztna_portal.authentication %}
+    - type: {{ auth.type }}
+      target: {{ auth.server | default(auth.idp_metadata_url) }}
+{% endfor %}
+policies:
+{% for policy in access_policies %}
+  - name: {{ policy.name }}
+    action: {{ policy.action }}
+    applications: {{ policy.applications | join(',') }}
+{% endfor %}

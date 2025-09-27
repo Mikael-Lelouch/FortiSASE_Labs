@@ -1,0 +1,87 @@
+---
+- name: Configuration avancée FortiGate Hub
+  hosts: hub
+  gather_facts: no
+  collections:
+    - fortinet.fortios
+  tasks:
+    - name: Créer la zone SD-WAN
+      fortios_system_sdwan:
+        vdom: root
+        system_sdwan:
+          status: enable
+          members: "{{ sdwan_members }}"
+
+    - name: Définir les peers VPN
+      fortios_vpn_ipsec_phase1_interface:
+        vdom: root
+        state: present
+        vpn_ipsec_phase1_interface:
+          name: "{{ item.name }}"
+          interface: port2
+          remote_gw: "{{ item.remote_ip }}"
+          psksecret: "{{ item.pre_shared_key }}"
+          proposal: aes256-sha256
+      loop: "{{ vpn_peers }}"
+
+    - name: Configurer la route par défaut vers le POP SASE
+      when: sase_overlay is defined
+      fortios_router_static:
+        vdom: root
+        state: present
+        router_static:
+          dst: 0.0.0.0/0
+          gateway: "{{ sase_overlay.gateway }}"
+          device: "{{ sase_overlay.interface }}"
+
+    - name: Créer les politiques firewall
+      fortios_firewall_policy:
+        vdom: root
+        state: present
+        firewall_policy: "{{ item.firewall_policy }}"
+      loop: "{{ firewall_policies }}"
+
+- name: Configuration FortiGate Branches
+  hosts: branches
+  gather_facts: no
+  collections:
+    - fortinet.fortios
+  tasks:
+    - name: Configurer VPN vers hub
+      fortios_vpn_ipsec_phase1_interface:
+        vdom: root
+        state: present
+        vpn_ipsec_phase1_interface:
+          name: HUB
+          interface: "{{ wan_interface }}"
+          remote_gw: "{{ hub_peer.ip }}"
+          psksecret: "{{ hub_peer.pre_shared_key }}"
+          proposal: aes256-sha256
+
+    - name: Déployer les tags ZTNA
+      fortios_ztna_tag:
+        vdom: root
+        state: present
+        ztna_tag:
+          name: "{{ item }}"
+      loop: "{{ ztna_tags }}"
+
+- name: Configuration du POP FortiSASE
+  hosts: sase
+  gather_facts: no
+  collections:
+    - fortinet.fortisase
+  tasks:
+    - name: Créer le portail ZTNA
+      fortisase_portal:
+        state: present
+        portal:
+          name: "{{ ztna_portal.name }}"
+          fqdn: "{{ ztna_portal.fqdn }}"
+          authentication: "{{ ztna_portal.authentication }}"
+
+    - name: Déployer les politiques d'accès
+      fortisase_access_policy:
+        state: present
+        access_policy: "{{ item }}"
+      loop: "{{ access_policies }}"
