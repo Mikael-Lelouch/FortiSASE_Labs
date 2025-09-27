@@ -1,0 +1,10 @@
+config system global
+    set hostname {{ hostname | default('HUB-FGT') }}
+end
+
+config system interface
+    edit "port3"
+        set ip 192.168.0.1 255.255.255.0
+        set allowaccess ping https ssh
+    next
+end

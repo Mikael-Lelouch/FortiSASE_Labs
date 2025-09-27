@@ -1,0 +1,16 @@
+hostname: BR2-FGT
+wan_interface: port2
+lan_interface:
+  name: port3
+  ip: 192.168.20.1
+  mask: 255.255.255.0
+  dhcp:
+    enable: true
+    range_start: 192.168.20.10
+    range_end: 192.168.20.200
+hub_peer:
+  ip: 172.16.0.1
+  pre_shared_key: Fortinet123!
+ztna_tags:
+  - branch
+  - ot

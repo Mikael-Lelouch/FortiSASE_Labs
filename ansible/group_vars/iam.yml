@@ -1,0 +1,17 @@
+hostname: idm
+packages:
+  - freeradius
+  - strongswan
+  - openldap
+radius_clients:
+  - name: fortigate-hub
+    ip: 192.168.0.1
+    secret: radiussecret
+ldap_domain: dc=sase,dc=lab
+users:
+  - username: alice
+    password: Passw0rd!
+    groups: [teleworkers]
+  - username: bob
+    password: Passw0rd!
+    groups: [teleworkers]

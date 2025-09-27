@@ -1,0 +1,23 @@
+api_base_url: https://api.fortisase.local
+ztna_portal:
+  name: RemotePortal
+  fqdn: portal.sase.lab
+  authentication:
+    - type: radius
+      server: 192.168.100.10
+      secret: radiussecret
+    - type: saml
+      idp_metadata_url: https://idm.sase.lab/saml/metadata
+access_policies:
+  - name: Allow-Trusted
+    users: [group-teleworkers]
+    applications: [Office365, Salesforce]
+    action: allow
+    security_profiles:
+      av_profile: default
+      webfilter: default
+      ips_sensor: default
+  - name: Deny-Unknown
+    users: [any]
+    applications: [any]
+    action: deny
